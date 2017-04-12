@@ -1,17 +1,17 @@
 from tkinter import *
 from random import choice
-class pole(object):
-    def __init__(self,master,row, column):
-        self.button = Button(master, text = '   ')
-        self.mine = False
-        self.value = 0
-        self.viewed = False
-        self.flag = 0
-        self.around = []
-        self.clr = 'black'
-        self.bg = None
-        self.row = row
-        self.column = column
+class pole(object): #создаем Класс поля, наследуемся от Object
+    def __init__(self,master,row, column): #Инициализация поля. master - окно Tk().
+        self.button = Button(master, text = '   ') #Создаем для нашего поля атрибут 'button'
+        self.mine = False #Переменная наличия мины в поле
+        self.value = 0 #Кол-во мин вокруг
+        self.viewed = False #Открыто/закрыто поле
+        self.flag = 0 #0 - флага нет, 1 - флаг стоит, 2 - стоит "?"
+        self.around = [] #Массив, содержащий координаты соседних клеток
+        self.clr = 'black' #Цвет текста
+        self.bg = None #Цвет фона
+        self.row = row #Строка
+        self.column = column #Столбец
     def viewAround(self):
         return self.around
     def setAround(self):
@@ -69,9 +69,9 @@ class pole(object):
     def viewMine(self):
         return self.mine
     def view(self,event):
-        if mines == []:
-            seter(0,self.around,self.row,self.column)
-        if self.value == 0:
+        if mines == []: #При первом нажатии
+            seter(0,self.around,self.row,self.column) #Устанавливаем мины
+        if self.value == 0: #Устанавливаем цвета. Можно написать и для 6,7 и 8, но у меня закончилась фантазия
             self.clr = 'yellow'
             self.value = None
             self.bg = 'lightgrey'
@@ -84,33 +84,33 @@ class pole(object):
         elif self.value == 4:
             self.clr = 'purple'
         
-        if self.mine == True and not self.viewed and not self.flag:
-            self.button.configure(text = 'B', bg = 'red')
-            self.viewed = True
+        if self.mine and not self.viewed and not self.flag: #Если в клетке есть мина, она еще не открыта и на ней нет флага
+            self.button.configure(text = 'B', bg = 'red') #Показываем пользователю, что тут есть мина
+            self.viewed = True #Говорим, что клетка раскрыта
             for q in mines:
-                buttons[q[0]][q[1]].view('<Button-1>')
-            lose()
+                buttons[q[0]][q[1]].view('<Button-1>') #Я сейчас буду вскрывать ВСЕ мины
+            lose() #Вызываем окно проигрыша
         
-        elif not self.viewed and not self.flag:
-            self.button.configure(text = self.value, fg = self.clr, bg = self.bg)
+        elif not self.viewed and not self.flag: #Если мины нет, клетка не открыта и флаг не стоит
+            self.button.configure(text = self.value, fg = self.clr, bg = self.bg) #выводим в текст поля значение
             self.viewed = True
-            if self.value == None:
+            if self.value == None: #Если вокруг нет мин
                 for k in self.around:
-                    buttons[k[0]][k[1]].view('<Button-1>')
+                    buttons[k[0]][k[1]].view('<Button-1>') #Открываем все поля вокруг 
     def setFlag(self,event):
-        if self.flag == 0 and not self.viewed:
-            self.flag = 1
-            self.button.configure(text = 'F', bg = 'yellow')
-            flags.append([self.row,self.column])
-        elif self.flag == 1 and not self.viewed:
-            self.flag = 2
-            self.button.configure(text = '?', bg = 'blue')
-            flags.pop(flags.index([self.row,self.column]))
-        elif self.flag == 2 and not self.viewed:
-            self.flag = 0
-            self.button.configure(text = '   ', bg = 'white')
-        if sorted(mines) == sorted(flags) and mines != []:
-            winer()
+        if self.flag == 0 and not self.viewed: #Если поле не открыто и флага нет
+            self.flag = 1 #Ставим флаг
+            self.button.configure(text = 'F', bg = 'yellow') #Выводим флаг
+            flags.append([self.row,self.column]) #Добавляем в массив флагов
+        elif self.flag == 1: #Если флаг стоим
+            self.flag = 2 #Ставим значение '?'
+            self.button.configure(text = '?', bg = 'blue') #Выводим его
+            flags.pop(flags.index([self.row,self.column])) #Удаляем флаг из массива флагов
+        elif self.flag == 2: #Если вопрос
+            self.flag = 0 #Устанавливаем на отсутствие флага
+            self.button.configure(text = '   ', bg = 'white') #Выводим пустоту
+        if sorted(mines) == sorted(flags) and mines != []: #если массив флагов идентичен массиву мин
+            winer() #Сообщаем о победе
 def lose():
     loseWindow = Tk()
     loseWindow.title('Вы проиграли:-(')
@@ -120,22 +120,23 @@ def lose():
     mines = []
     loseWindow.mainloop()
 
-def seter(q, around,row,column): #Получаем 
-    if q == bombs:
-        for i in range(len(buttons)):
-            for j in range(len(buttons[i])):
-                for k in buttons[i][j].viewAround():
-                    if buttons[k[0]][k[1]].viewMine():
-                        buttons[i][j].setValue(buttons[i][j].viewValue()+1)
+def seter(q, around,row,column): #Получаем массив полей вокруг и координаты нажатого поля
+    if q == bombs: #Если кол-во установленных бомб = кол-ву заявленных
+        for i in range(len(buttons)): #Шагаем по строкам
+            for j in range(len(buttons[i])): #Шагаем по полям в строке i
+                for k in buttons[i][j].viewAround(): #Шагаем по полям вокруг выбранного поля j
+                    if buttons[k[0]][k[1]].viewMine(): #Если в одном из полей k мина
+                        buttons[i][j].setValue(buttons[i][j].viewValue()+1) #То увеличиваем значение поля j
         return
-    a = choice(buttons)
-    b = choice(a)
-    if [buttons.index(a),a.index(b)] not in mines and [buttons.index(a),a.index(b)] not in around and [buttons.index(a),a.index(b)] != [row,column]:
-        b.setMine()
-        mines.append([buttons.index(a),a.index(b)])
-        seter(q+1,around,row,column)
+    a = choice(buttons) #Выбираем рандомную строку
+    b = choice(a) #Рандомное поле
+    if [buttons.index(a),a.index(b)] not in mines and [buttons.index(a),a.index(b)] not in around and [buttons.index(a),a.index(b)] != [row,column]: #Проверяем, что выбранное поле не выбиралось до этого и, что не является полем на которую мы нажали (или окружающим ее полем)
+        b.setMine() #Ставим мину
+        mines.append([buttons.index(a),a.index(b)]) #Добавляем ее в массив 
+        seter(q+1,around,row,column) #Вызываем установщик, сказав, что одна мина уже есть
     else:
-        seter(q,around,row,column)
+        seter(q,around,row,column) #Вызываем установщик еще раз
+
 def winer():
     winWindow = Tk()
     winWindow.geometry('300x100')
@@ -148,32 +149,31 @@ def cheat(event):
         for t in mines:
             buttons[t[0]][t[1]].setFlag('<Button-1>')
 
-def game(high,lenght):
-    root = Tk()
-    root.bg = ('grey')
-    root.title('Сапер')
+def game(high,lenght): #получаем значения
+    root = Tk() 
+    root.title('Сапер') 
     global buttons
     global mines
     global flags
-    flags = []
-    mines = []
-    buttons = [[pole(root,j,i) for i in range(high)] for j in range(lenght)]
-    for i in range(len(buttons)):
-        for j in range(len(buttons[i])):
-            buttons[i][j].button.grid(column = j, row = i, ipadx = 7, ipady = 1)
-            buttons[i][j].button.bind('<Button-1>', buttons[i][j].view)
-            buttons[i][j].button.bind('<Button-3>', buttons[i][j].setFlag)
-            buttons[i][j].setAround()
-    buttons[0][0].button.bind('<Control-Button-1>', cheat)
-    root.resizable(False,False)
+    flags = [] #Массив, содержащий в себе места, где стоят флажки
+    mines = [] #Массив, содержащий в себе места, где лежат мины
+    buttons = [[pole(root,j,i) for i in range(high)] for j in range(lenght)] #Двумерный массив, в котором лежат поля
+    for i in range(len(buttons)): #Цикл по строкам
+        for j in range(len(buttons[i])): #Цикл по элементам строки
+            buttons[i][j].button.grid(column = j, row = i, ipadx = 7, ipady = 1) #Размещаем все в одной сетке при помощи grid
+            buttons[i][j].button.bind('<Button-1>', buttons[i][j].view) #Биндим открывание клетки
+            buttons[i][j].button.bind('<Button-3>', buttons[i][j].setFlag) #Установка флажка
+            buttons[i][j].setAround() #Функция заполнения массива self.around
+    buttons[0][0].button.bind('<Control-Button-1>', cheat) #создаем комбинацию клавиш для быстрого решения
+    root.resizable(False,False) #запрещаем изменения размера
     root.mainloop()
 
-def bombcounter():
-    global bombs
-    if mineText.get('1.0', END) == '\n':
-        bombs = 10
+def bombcounter(): 
+    global bombs 
+    if mineText.get('1.0', END) == '\n': #Проверяем наличие текста
+        bombs = 10 #Если текста нет, то по стандарту кол-во бомб - 10
     else:
-        bombs = int(mineText.get('1.0', END))
+        bombs = int(mineText.get('1.0', END)) #Если текст есть, то это и будет кол-во бомб
     if highText.get('1.0', END) == '\n':
         high = 9
     else:
@@ -182,23 +182,23 @@ def bombcounter():
         lenght = 9
     else:
         lenght = int(lenghtText.get('1.0', END))
-    game(high,lenght)
-settings = Tk()
-settings.title('Настройки')
-settings.geometry('200x150')
-mineText = Text(settings, width = 5, height = 1)
+    game(high,lenght) #Начинаем игру, передавая кол-во полей
+
+settings = Tk() #Создаем окно
+settings.title('Настройки') #Пишем название окна
+settings.geometry('200x150') #Задаем размер
+mineText = Text(settings, width = 5, height = 1) #Создаем поля для ввода текста и пояснения
 mineLabe = Label(settings, height = 1, text = 'Бомбы:')
 highText = Text(settings, width = 5, height = 1)
 highLabe = Label(settings, height = 1, text = 'Ширина:')
 lenghtText = Text(settings, width = 5, height = 1)
 lenghtLabe = Label(settings, height = 1, text = 'Высота:')
-mineBut = Button(settings, text = 'Начать:', command = bombcounter)
-mineBut.place(x = 70, y = 90)
+mineBut = Button(settings, text = 'Начать:', command = bombcounter) #Создаем кнопку
+mineBut.place(x = 70, y = 90)  #Размещаем это все
 mineText.place(x = 75, y = 5)
 mineLabe.place(x = 5, y = 5)
 highText.place(x = 75, y = 30)
 highLabe.place(x = 5, y = 30)
 lenghtText.place(x = 75, y = 55)
 lenghtLabe.place(x = 5, y = 55)
-settings.mainloop()
-
+settings.mainloop() 
