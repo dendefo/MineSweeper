@@ -149,7 +149,7 @@ def game(high,lenght): #получаем значения
     global flags
     flags = [] #Массив, содержащий в себе места, где стоят флажки
     mines = [] #Массив, содержащий в себе места, где лежат мины
-    buttons = [[pole(root,j,i) for i in range(high)] for j in range(lenght)] #Двумерный массив, в котором лежат поля
+    buttons = [[Pole(root,row,column) for column in range(high)] for row in range(lenght)] #Двумерный массив, в котором лежат поля
     for i in buttons: #Цикл по строкам
         for j in i: #Цикл по элементам строки
             j.button.grid(column = i.index(j), row = buttons.index(i), ipadx = 7, ipady = 1) #Размещаем все в одной сетке при помощи grid
