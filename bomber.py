@@ -59,15 +59,7 @@ class pole(object): #создаем Класс поля, наследуемся 
                 self.around.append([self.row+1,self.column-1])
                 self.around.append([self.row-1,self.column+1])
                 self.around.append([self.row-1,self.column-1])
-            
-    def setValue(self,value):
-        self.value = value
-    def viewValue(self):
-        return self.value
-    def setMine(self):
-        self.mine = True
-    def viewMine(self):
-        return self.mine
+    
     def view(self,event):
         if mines == []: #При первом нажатии
             seter(0,self.around,self.row,self.column) #Устанавливаем мины
@@ -122,16 +114,16 @@ def lose():
 
 def seter(q, around,row,column): #Получаем массив полей вокруг и координаты нажатого поля
     if q == bombs: #Если кол-во установленных бомб = кол-ву заявленных
-        for i in range(len(buttons)): #Шагаем по строкам
-            for j in range(len(buttons[i])): #Шагаем по полям в строке i
-                for k in buttons[i][j].viewAround(): #Шагаем по полям вокруг выбранного поля j
-                    if buttons[k[0]][k[1]].viewMine(): #Если в одном из полей k мина
-                        buttons[i][j].setValue(buttons[i][j].viewValue()+1) #То увеличиваем значение поля j
+        for i in buttons: #Шагаем по строкам
+            for j in i: #Шагаем по полям в строке i
+                for k in j.around: #Шагаем по полям вокруг выбранного поля j
+                    if buttons[k[0]][k[1]].mine: #Если в одном из полей k мина
+                        buttons[buttons.index(i)][i.index(j)].value+=1 #То увеличиваем значение поля j
         return
     a = choice(buttons) #Выбираем рандомную строку
     b = choice(a) #Рандомное поле
     if [buttons.index(a),a.index(b)] not in mines and [buttons.index(a),a.index(b)] not in around and [buttons.index(a),a.index(b)] != [row,column]: #Проверяем, что выбранное поле не выбиралось до этого и, что не является полем на которую мы нажали (или окружающим ее полем)
-        b.setMine() #Ставим мину
+        b.mine = True #Ставим мину
         mines.append([buttons.index(a),a.index(b)]) #Добавляем ее в массив 
         seter(q+1,around,row,column) #Вызываем установщик, сказав, что одна мина уже есть
     else:
@@ -158,12 +150,12 @@ def game(high,lenght): #получаем значения
     flags = [] #Массив, содержащий в себе места, где стоят флажки
     mines = [] #Массив, содержащий в себе места, где лежат мины
     buttons = [[pole(root,j,i) for i in range(high)] for j in range(lenght)] #Двумерный массив, в котором лежат поля
-    for i in range(len(buttons)): #Цикл по строкам
-        for j in range(len(buttons[i])): #Цикл по элементам строки
-            buttons[i][j].button.grid(column = j, row = i, ipadx = 7, ipady = 1) #Размещаем все в одной сетке при помощи grid
-            buttons[i][j].button.bind('<Button-1>', buttons[i][j].view) #Биндим открывание клетки
-            buttons[i][j].button.bind('<Button-3>', buttons[i][j].setFlag) #Установка флажка
-            buttons[i][j].setAround() #Функция заполнения массива self.around
+    for i in buttons: #Цикл по строкам
+        for j in i: #Цикл по элементам строки
+            j.button.grid(column = i.index(j), row = buttons.index(i), ipadx = 7, ipady = 1) #Размещаем все в одной сетке при помощи grid
+            j.button.bind('<Button-1>', j.view) #Биндим открывание клетки
+            j.button.bind('<Button-3>', j.setFlag) #Установка флажка
+            j.setAround() #Функция заполнения массива self.around
     buttons[0][0].button.bind('<Control-Button-1>', cheat) #создаем комбинацию клавиш для быстрого решения
     root.resizable(False,False) #запрещаем изменения размера
     root.mainloop()
