@@ -1,6 +1,6 @@
 from tkinter import *
 from random import choice
-class pole(object): #создаем Класс поля, наследуемся от Object
+class Pole(object): #создаем Класс поля, наследуемся от Object
     def __init__(self,master,row, column): #Инициализация поля. master - окно Tk().
         self.button = Button(master, text = '   ') #Создаем для нашего поля атрибут 'button'
         self.mine = False #Переменная наличия мины в поле
