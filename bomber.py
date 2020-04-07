@@ -1,5 +1,9 @@
 from tkinter import *
 from random import choice
+from time import time
+from threading import Timer
+import itertools
+
 class Pole(object): #создаем Класс поля, наследуемся от Object
     def __init__(self,master,row, column): #Инициализация поля. master - окно Tk().
         self.button = Button(master, text = '   ') #Создаем для нашего поля атрибут 'button'
@@ -11,35 +15,19 @@ class Pole(object): #создаем Класс поля, наследуемся 
         self.bg = None #Цвет фона
         self.row = row #Строка
         self.column = column #Столбец
-    def Around(self):
-        """ Возвращает соседние поля """
-        if self.row == 0: #Если верхняя строка
-            if self.column == 0: #И левый столбец
-                return [self.row+1,self.column],[self.row,self.column+1],[self.row+1,self.column+1]
-                #Возращаем ЮВ,Ю,В (Юго-Восток,Юг,Восток)
-            elif self.column == len(buttons[self.row])-1: #И правый столбец
-                return [self.row+1,self.column],[self.row,self.column-1],[self.row+1,self.column-1]
-                #Возвращаем ЮЗ,Ю,З
-            return [self.row+1,self.column],[self.row,self.column-1],[self.row,self.column+1],[self.row+1,self.column+1],[self.row+1,self.column-1]
-            #Если серединный столбец возвращаем #В,ЮВ,Ю,ЮЗ,З
-        elif self.row == len(buttons)-1: #Если строка нижняя
-            if self.column == 0: #И левый столбец
-                return [self.row-1,self.column],[self.row,self.column+1],[self.row-1,self.column+1]
-                #Возвращаем С,СВ,В
-            elif self.column == len(buttons[self.row])-1: #Если столбец правый
-                return [self.row-1,self.column],[self.row,self.column-1],[self.row-1,self.column-1]
-                #Возвращаем С,СЗ,З
-            return [self.row-1,self.column],[self.row,self.column-1],[self.row,self.column+1],[self.row-1,self.column+1],[self.row-1,self.column-1]
-            #Если серединный возвращаем В,СВ,С,СЗ,З
-        #Если серединная строка
-        if self.column == 0: #И левый столбец
-            return [self.row-1,self.column],[self.row+1,self.column],[self.row,self.column+1],[self.row+1,self.column+1],[self.row-1,self.column+1]
-            #Возвращаем С,СВ,В,ЮВ,Ю
-        elif self.column == len(buttons[self.row])-1: #Если правый столбец
-            return [self.row-1,self.column],[self.row+1,self.column],[self.row,self.column-1],[self.row+1,self.column-1],[self.row-1,self.column-1]
-            #Возвращаем С,СЗ,З,ЮЗ,Ю
-        return [self.row-1,self.column],[self.row+1,self.column],[self.row,self.column-1],[self.row,self.column+1],[self.row+1,self.column+1],[self.row+1,self.column-1],[self.row-1,self.column+1],[self.row-1,self.column-1]
-        #И наконец, если столбец и строка серединные, то возвращаем все 8 сторон
+        
+    def around(self):
+        in_range = lambda index, max_index: 0 <= index < max_index  # проверка на вхождение в допустимый диапазон
+        diffs = (-1, 0, 1)  # где находятся соседи относительно текущего
+        adjacents = list()  # список соседей
+        for i, j in itertools.product(diffs, diffs):  # https://docs.python.org/3/library/itertools.html#itertools.product
+                if i == j == 0:
+                    continue # исключаем текущий элемент
+                next_row, next_col = self.row + i, self.column + j
+                if in_range(next_row, len(buttons)) and in_range(next_col, len(buttons[0])):
+                    adjacents.append([next_row, next_col])
+        return adjacents
+    
     def view(self,event):
         if mines == []: #При первом нажатии
             self.seter(0) #Устанавливаем мины
@@ -55,20 +43,44 @@ class Pole(object): #создаем Класс поля, наследуемся 
             self.clr = 'red'
         elif self.value == 4:
             self.clr = 'purple'
+        elif self.value == 5:
+            self.clr = 'pink'
+        elif self.value == 6:
+            self.clr = 'orange'
         
         if self.mine and not self.viewed and not self.flag: #Если в клетке есть мина, она еще не открыта и на ней нет флага
             self.button.configure(text = 'B', bg = 'red') #Показываем пользователю, что тут есть мина
             self.viewed = True #Говорим, что клетка раскрыта
             for q in mines:
                 buttons[q[0]][q[1]].view('<Button-1>') #Я сейчас буду вскрывать ВСЕ мины
-            lose() #Вызываем окно проигрыша
+            end('Вы проиграли:-(','В следующий раз повезет больше') #Вызываем окно проигрыша
+            exit()
         
         elif not self.viewed and not self.flag: #Если мины нет, клетка не открыта и флаг не стоит
             self.button.configure(text = self.value, fg = self.clr, bg = self.bg) #выводим в текст поля значение
             self.viewed = True
             if self.value == None: #Если вокруг нет мин
-                for k in self.Around():
-                    buttons[k[0]][k[1]].view('<Button-1>') #Открываем все поля вокруг 
+                for k in self.around():
+                    buttons[k[0]][k[1]].view('<Button-1>') #Открываем все поля вокруг
+
+            return
+
+        if self.viewed: #Если необходимык флаги поблизости поставлены (вне зависимости от правильности ответа), при нажатии на ячейку открывает соседниии ячейки
+            ar = self.around()
+            flags_nearby = 0
+            for i in ar:
+                x_coo = i[0]
+                y_coo = i[1]
+                if buttons[x_coo][y_coo].flag == 1:
+                    flags_nearby+=1
+            if self.value == flags_nearby:
+                for i in ar:
+                    x_coo = i[0]
+                    y_coo = i[1]
+                    
+                    if not buttons[x_coo][y_coo].viewed and not buttons[x_coo][y_coo].flag:
+                        buttons[x_coo][y_coo].view('<Button-1>')
+        
     def setFlag(self,event):
         if self.flag == 0 and not self.viewed: #Если поле не открыто и флага нет
             self.flag = 1 #Ставим флаг
@@ -82,19 +94,19 @@ class Pole(object): #создаем Класс поля, наследуемся 
             self.flag = 0 #Устанавливаем на отсутствие флага
             self.button.configure(text = '   ', bg = 'white') #Выводим пустоту
         if sorted(mines) == sorted(flags) and mines != []: #если массив флагов идентичен массиву мин
-            winer() #Сообщаем о победе
+            end('Вы выиграли:-)','Поздравляем!') #Сообщаем о победе
 
     def seter(self,q):
         if q == bombs: #Если кол-во установленных бомб = кол-ву заявленных
             for i in buttons: #Шагаем по строкам
                 for j in i: #Шагаем по полям в строке i
-                    for k in j.Around(): #Шагаем по полям вокруг выбранного поля j
+                    for k in j.around(): #Шагаем по полям вокруг выбранного поля j
                         if buttons[k[0]][k[1]].mine: #Если в одном из полей k мина
                             buttons[buttons.index(i)][i.index(j)].value+=1 #То увеличиваем значение поля j
             return
         a = choice(buttons) #Выбираем рандомную строку
         b = choice(a) #Рандомное поле
-        if [buttons.index(a),a.index(b)] not in mines and [buttons.index(a),a.index(b)] not in self.Around() and [buttons.index(a),a.index(b)] != [self.row,self.column]: #Проверяем, что выбранное поле не выбиралось до этого и, что не является полем на которую мы нажали (или окружающим ее полем)
+        if [buttons.index(a),a.index(b)] not in mines and [buttons.index(a),a.index(b)] not in self.around() and [buttons.index(a),a.index(b)] != [self.row,self.column]: #Проверяем, что выбранное поле не выбиралось до этого и, что не является полем на которую мы нажали (или окружающим ее полем)
             b.mine = True #Ставим мину
             mines.append([buttons.index(a),a.index(b)]) #Добавляем ее в массив 
             self.seter(q+1) #Вызываем установщик, сказав, что еще одна мина уже есть
@@ -102,30 +114,27 @@ class Pole(object): #создаем Класс поля, наследуемся 
             self.seter(q) #Вызываем установщик еще раз
 
 
-def lose():
+def end(title, string):
+    global root
+    global start_time
+    start_time = -1
     loseWindow = Tk()
-    loseWindow.title('Вы проиграли:-(')
+    loseWindow.title(title)
     loseWindow.geometry('300x100')
-    loseLabe = Label(loseWindow, text = 'В следующий раз повезет больше!')
+    loseLabe = Label(loseWindow, text = string)
     loseLabe.pack()
     mines = []
     loseWindow.resizable(False,False)
+    root.destroy()
     loseWindow.mainloop()
 
-def winer():
-    winWindow = Tk()
-    winWindow.geometry('300x100')
-    winWindow.title('Вы победили!')
-    winLabe = Label(winWindow, text = 'Поздравляем!')
-    winLabe.pack()
-    winWindow.resizable(False,False)
-    winWindow.mainloop()
 
 def cheat(event):
         for t in mines:
             buttons[t[0]][t[1]].setFlag('<Button-1>')
 
 def game(high,lenght): #получаем значения
+    global root
     root = Tk() 
     root.title('Сапер') 
     global buttons
@@ -139,26 +148,41 @@ def game(high,lenght): #получаем значения
             j.button.grid(column = i.index(j), row = buttons.index(i), ipadx = 7, ipady = 1) #Размещаем все в одной сетке при помощи grid
             j.button.bind('<Button-1>', j.view) #Биндим открывание клетки
             j.button.bind('<Button-3>', j.setFlag) #Установка флажка
+            j.button.configure(bg = 'white')
     buttons[0][0].button.bind('<Control-Button-1>', cheat) #создаем комбинацию клавиш для быстрого решения
     root.resizable(False,False) #запрещаем изменения размера
     root.mainloop()
 
+global start_time
+
 def bombcounter(): 
     global bombs 
     if mineText.get('1.0', END) == '\n': #Проверяем наличие текста
-        bombs = 10 #Если текста нет, то по стандарту кол-во бомб - 10
+        bombs = 99 #Если текста нет, то по стандарту кол-во бомб - 10
     else:
         bombs = int(mineText.get('1.0', END)) #Если текст есть, то это и будет кол-во бомб
     if highText.get('1.0', END) == '\n':
-        high = 9
+        high = 30
     else:
         high = int(highText.get('1.0', END))
     if lenghtText.get('1.0', END) == '\n':
-        lenght = 9
+        lenght = 16
     else:
         lenght = int(lenghtText.get('1.0', END))
+    global start_time
+    start_time = int(time())
+    timeCounter()
     game(high,lenght) #Начинаем игру, передавая кол-во полей
-
+    
+def timeCounter(): #кривой таймер. Работает и норм
+    if start_time == -1:
+        return
+    counter = Timer(1,timeCounter)
+    counter.start()
+    timeLabe.configure(text = 'Время: ' + str(int(time())- start_time))
+    
+    
+    
 settings = Tk() #Создаем окно
 settings.title('Настройки') #Пишем название окна
 settings.geometry('200x150') #Задаем размер
@@ -169,6 +193,8 @@ highLabe = Label(settings, height = 1, text = 'Ширина:')
 lenghtText = Text(settings, width = 5, height = 1)
 lenghtLabe = Label(settings, height = 1, text = 'Высота:')
 mineBut = Button(settings, text = 'Начать:', command = bombcounter) #Создаем кнопку
+global timeLabe
+timeLabe = Label(settings, height = 1, width = 10, text = '00:00')
 mineBut.place(x = 70, y = 90)  #Размещаем это все
 mineText.place(x = 75, y = 5)
 mineLabe.place(x = 5, y = 5)
@@ -176,5 +202,6 @@ highText.place(x = 75, y = 30)
 highLabe.place(x = 5, y = 30)
 lenghtText.place(x = 75, y = 55)
 lenghtLabe.place(x = 5, y = 55)
+timeLabe.place(x = 5, y = 117)
 settings.resizable(False,False)
 settings.mainloop() 
